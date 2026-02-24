@@ -6,7 +6,8 @@ import traceback
 
 class ReplInstance:
     def __init__(self):
-        self.ic = InteractiveConsole()
+        self.locals :dict[str,object] = {"__name__": "__console__", "__doc__": None}
+        self.ic = InteractiveConsole(self.locals)
     
     @dataclass
     class RunResult:
