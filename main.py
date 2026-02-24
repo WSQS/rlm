@@ -18,7 +18,7 @@ class ReplInstance:
         err = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                self.ic.push(code)  # True means more input required
+                self.ic.runsource(code, "<console>", "exec")  # True means more input required
             except SystemExit:
                 print("SystemExit: exit()/quit() is not allowed in this REPL session.")
             except Exception:
