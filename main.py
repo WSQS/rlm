@@ -39,8 +39,6 @@ def main():
     load_dotenv()
     print("Hello from rlm!")
     ic = ReplInstance()
-    r = ic.run("""print("hello,world")""")
-    print(r)
     conversation: list[MessageParam] = [
         {
             "role": "user",
