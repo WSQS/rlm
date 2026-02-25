@@ -14,6 +14,11 @@ class ReplInstance:
     def __init__(self):
         self.locals: dict[str, object] = {"__name__": "__console__", "__doc__": None}
         self.ic = InteractiveConsole(self.locals)
+        # Add FINAL function to REPL locals
+        self.final_result = None
+        def FINAL(answer:object):
+            self.final_result = answer
+        self.locals["FINAL"] = FINAL
 
     @dataclass
     class RunResult:
@@ -127,7 +132,13 @@ Finishing:
                 )
             else:
                 print(f"Block:\n{block}")
+
+        if ic.final_result:
+            print(f"FINAL:\n{ic.final_result}")
+            break
+        
         if not has_tool:
+            print("No result and no tool. Exit in exception.")
             break
 
 
