@@ -4,6 +4,9 @@ from dataclasses import dataclass
 import io
 import traceback
 
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
 class ReplInstance:
     def __init__(self):
         self.locals :dict[str,object] = {"__name__": "__console__", "__doc__": None}
@@ -29,10 +32,33 @@ class ReplInstance:
 
 
 def main():
+    load_dotenv()
     print("Hello from rlm!")
     ic = ReplInstance()
     r = ic.run("""print("hello,world")""")
     print(r)
+    client = Anthropic()
+    message = client.messages.create(
+    model="MiniMax-M2.5",
+    max_tokens=1000,
+    system="You are a helpful assistant.",
+    messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Hi, how are you?"
+                    }
+            ]
+            }
+        ]
+    )
+    for block in message.content:
+        if block.type == "thinking":
+            print(f"Thinking:\n{block.thinking}\n")
+        elif block.type == "text":
+            print(f"Text:\n{block.text}\n")
 
 
 if __name__ == "__main__":
