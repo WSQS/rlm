@@ -7,28 +7,30 @@ import traceback
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+
 class ReplInstance:
     def __init__(self):
-        self.locals :dict[str,object] = {"__name__": "__console__", "__doc__": None}
+        self.locals: dict[str, object] = {"__name__": "__console__", "__doc__": None}
         self.ic = InteractiveConsole(self.locals)
-    
+
     @dataclass
     class RunResult:
-        out : str
-        err : str
+        out: str
+        err: str
 
-    def run(self,code:str):
+    def run(self, code: str):
         out = io.StringIO()
         err = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                self.ic.runsource(code, "<console>", "exec")  # True means more input required
+                self.ic.runsource(
+                    code, "<console>", "exec"
+                )  # True means more input required
             except SystemExit:
                 print("SystemExit: exit()/quit() is not allowed in this REPL session.")
             except Exception:
                 print(traceback.format_exc())
-        return self.RunResult(out.getvalue(),err.getvalue())
-
+        return self.RunResult(out.getvalue(), err.getvalue())
 
 
 def main():
@@ -39,9 +41,9 @@ def main():
     print(r)
     client = Anthropic()
     message = client.messages.create(
-    model="MiniMax-M2.5",
-    max_tokens=1000,
-    system="""You are an assistant that can execute Python via a tool.
+        model="MiniMax-M2.5",
+        max_tokens=1000,
+        system="""You are an assistant that can execute Python via a tool.
 
 You have one tool available:
 
@@ -62,35 +64,29 @@ Rules (must follow):
 
 Start now. Use the tool-driven workflow until you can produce `FINAL(...)`.
 """,
-    tools = [
-    {
-        "name": "run_python",
-        "description": "Execute the provided Python code in a persistent REPL and return captured stdout/stderr. Use this to inspect variables, process `context`, and compute intermediate results.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "description": "Python code to execute. Do not include markdown fences."
-                }
-            },
-            "required": ["code"],
-            "additionalProperties": False
-        },
-    }
-]
-    ,
-    messages=[
+        tools=[
+            {
+                "name": "run_python",
+                "description": "Execute the provided Python code in a persistent REPL and return captured stdout/stderr. Use this to inspect variables, process `context`, and compute intermediate results.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "Python code to execute. Do not include markdown fences.",
+                        }
+                    },
+                    "required": ["code"],
+                    "additionalProperties": False,
+                },
+            }
+        ],
+        messages=[
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Calculate 500 times 100"
-                    }
-            ]
+                "content": [{"type": "text", "text": "Calculate 500 times 100"}],
             }
-        ]
+        ],
     )
     for block in message.content:
         if block.type == "thinking":
