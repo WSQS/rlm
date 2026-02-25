@@ -71,6 +71,11 @@ Core rules (must follow):
    * Tool outputs may be truncated; if you need more, use Python to filter, sample, summarize, or narrow results before continuing.
 5. Break problems into small steps and validate each step with the tool. Prefer a programmatic strategy over guessing.
 
+**Output Guidelines:**
+- Keep your output concise and relevant. Avoid printing unnecessary debug information.
+- Only output what is essential to answer the user's question.
+- If printing large datasets or results, use slicing (e.g., `result[:10]`) or summary methods to limit output.
+
 Finishing:
 
 * When you have the final answer, output **exactly one line** and nothing else:
@@ -108,13 +113,18 @@ Finishing:
                 has_tool = True
                 print(f"Tool:\n{block}")
                 r = ic.run(str(block.input["code"]))
-                print(f"Tool Result:\n{r}")
+                # Truncate tool result to avoid too much context
+                tool_result_str = str(r)
+                max_tool_result_length = 2000  # Limit tool result length
+                if len(tool_result_str) > max_tool_result_length:
+                    tool_result_str = tool_result_str[:max_tool_result_length] + "\n... [output truncated]"
+                print(f"Tool Result:\n{tool_result_str}")
                 conversation.append(
                     MessageParam(
                         role="user",
                         content=[
                             ToolResultBlockParam(
-                                type="tool_result", tool_use_id=block.id, content=str(r)
+                                type="tool_result", tool_use_id=block.id, content=tool_result_str
                             )
                         ],
                     )
