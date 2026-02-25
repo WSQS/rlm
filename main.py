@@ -2,6 +2,7 @@ from code import InteractiveConsole
 import contextlib
 from dataclasses import dataclass
 import io
+import textwrap
 import traceback
 
 from anthropic import Anthropic
@@ -50,8 +51,8 @@ def main():
     while True:
         message = client.messages.create(
             model="MiniMax-M2.5",
-            max_tokens=200000,
-            system="""You are an iterative tool-using agent. Your job is to answer the user’s query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
+            max_tokens=2000,
+            system=textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user’s query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
 
 Environment and tool:
 
@@ -74,11 +75,9 @@ Finishing:
 
 * When you have the final answer, output **exactly one line** and nothing else:
 
-    * `FINAL(<answer>)`
-    * Do not include extra commentary, formatting, or additional lines.
-
-    Start now. Use the tool-driven workflow until you can produce `FINAL(...)`.
-    """,
+  * `FINAL(<answer>)`
+* Do not include extra commentary, explanations, or additional lines outside `FINAL(...)`.
+"""),
             tools=[
                 {
                     "name": "run_python",
