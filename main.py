@@ -50,7 +50,7 @@ def main():
         message = client.messages.create(
             model="MiniMax-M2.5",
             max_tokens=2000,
-            system=textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user’s query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
+            system=textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user's query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
 
 Environment and tool:
 
@@ -76,10 +76,8 @@ Core rules (must follow):
 
 Finishing:
 
-* When you have the final answer, output **exactly one line** and nothing else:
-
-  * `FINAL(<answer>)`
-* Do not include extra commentary, explanations, or additional lines outside `FINAL(...)`.
+* When you have the final answer, call `FINAL(<answer>)` in the REPL to produce your final answer.
+* Do not output FINAL as text - you must call the FINAL() function using the run_python tool.
 """),
             tools=[
                 {
