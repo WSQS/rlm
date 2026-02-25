@@ -103,7 +103,16 @@ def main():
                 print(f"Tool:\n{block}")
                 r = ic.run(str(block.input["code"]))
                 print(f"Tool Result:\n{r}")
-                conversation.append(MessageParam(role="user",content=[ToolResultBlockParam(type="tool_result",tool_use_id=block.id,content=str(r))]))
+                conversation.append(
+                    MessageParam(
+                        role="user",
+                        content=[
+                            ToolResultBlockParam(
+                                type="tool_result", tool_use_id=block.id, content=str(r)
+                            )
+                        ],
+                    )
+                )
             else:
                 print(f"Block:\n{block}")
         if not has_tool:
