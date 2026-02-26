@@ -17,8 +17,10 @@ class ReplInstance:
         self.ic = InteractiveConsole(self.locals)
         # Add FINAL function to REPL locals
         self.final_result = None
-        def FINAL(answer:object):
+
+        def FINAL(answer: object):
             self.final_result = answer
+
         self.locals["FINAL"] = FINAL
 
     @dataclass
@@ -120,9 +122,13 @@ Finishing:
                 stdout = r.out
                 stderr = r.err
                 if len(stdout) > max_tool_result_length:
-                    stdout = stdout[:max_tool_result_length] + "\n... [output truncated]"
+                    stdout = (
+                        stdout[:max_tool_result_length] + "\n... [output truncated]"
+                    )
                 if len(stderr) > max_tool_result_length:
-                    stderr = stderr[:max_tool_result_length] + "\n... [output truncated]"
+                    stderr = (
+                        stderr[:max_tool_result_length] + "\n... [output truncated]"
+                    )
                 tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
                 print(f"Tool Result:\n{tool_result_str}")
                 conversation.append(
@@ -130,7 +136,9 @@ Finishing:
                         role="user",
                         content=[
                             ToolResultBlockParam(
-                                type="tool_result", tool_use_id=block.id, content=tool_result_str
+                                type="tool_result",
+                                tool_use_id=block.id,
+                                content=tool_result_str,
                             )
                         ],
                     )
@@ -141,7 +149,7 @@ Finishing:
         if ic.final_result:
             print(f"FINAL:\n{ic.final_result}")
             break
-        
+
         if not has_tool:
             print("No result and no tool. Exit in exception.")
             break
