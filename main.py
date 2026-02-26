@@ -1,3 +1,4 @@
+import json
 from code import InteractiveConsole
 import contextlib
 from dataclasses import dataclass
@@ -114,11 +115,15 @@ Finishing:
                 has_tool = True
                 print(f"Tool:\n{block}")
                 r = ic.run(str(block.input["code"]))
-                # Truncate tool result to avoid too much context
-                tool_result_str = str(r)
-                max_tool_result_length = 2000  # Limit tool result length
-                if len(tool_result_str) > max_tool_result_length:
-                    tool_result_str = tool_result_str[:max_tool_result_length] + "\n... [output truncated]"
+                # Truncate stdout and stderr separately, then return as JSON
+                max_tool_result_length = 2000  # Limit each output length
+                stdout = r.out
+                stderr = r.err
+                if len(stdout) > max_tool_result_length:
+                    stdout = stdout[:max_tool_result_length] + "\n... [output truncated]"
+                if len(stderr) > max_tool_result_length:
+                    stderr = stderr[:max_tool_result_length] + "\n... [output truncated]"
+                tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
                 print(f"Tool Result:\n{tool_result_str}")
                 conversation.append(
                     MessageParam(
