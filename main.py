@@ -8,7 +8,17 @@ import traceback
 
 from anthropic import Anthropic
 from anthropic.types import MessageParam, ToolResultBlockParam
+from dataclasses import dataclass, field
 from dotenv import load_dotenv
+from typing import Any
+
+
+@dataclass
+class AgentResult:
+    """Sub-agent execution result"""
+    final_answer: Any | None = None
+    status: str = "completed"
+    error: str | None = None
 
 
 class ReplInstance:
@@ -22,6 +32,104 @@ class ReplInstance:
             self.final_result = answer
 
         self.locals["FINAL"] = FINAL
+
+        # AGENT function for sub-agent creation
+        def AGENT(task: str, context: dict | None = None) -> AgentResult:
+            """Create a sub-agent to execute the given task"""
+            return self._create_agent(task, context)
+
+        self.locals["AGENT"] = AGENT
+        self.client = Anthropic()  # Client for sub-agents
+
+    def _create_agent(self, task: str, context: dict | None = None) -> AgentResult:
+        """Create and run a sub-agent"""
+        # Build context message
+        context_msg = ""
+        if context:
+            lines = ["## Context:"]
+            for key, value in context.items():
+                lines.append(f"- **{key}**: {value}")
+            context_msg = "\n".join(lines) + "\n\n"
+
+        # Build the user message
+        user_content = f"{context_msg}Task: {task}"
+
+        conversation: list[MessageParam] = [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": user_content}],
+            }
+        ]
+
+        # Create a sub-REPL for this agent
+        sub_ic = ReplInstance()
+
+        while True:
+            message = self.client.messages.create(
+                model="MiniMax-M2.5",
+                max_tokens=2000,
+                system=textwrap.dedent("""You are a sub-agent responsible for completing a subtask.
+
+The environment contains a persistent Python REPL.
+You can use run_python(code) to execute Python code.
+When done, call FINAL(<answer>) to return the result.
+"""),
+                tools=[
+                    {
+                        "name": "run_python",
+                        "description": "Execute Python code",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "code": {"type": "string"}
+                            },
+                            "required": ["code"],
+                        },
+                    }
+                ],
+                messages=conversation,
+            )
+            conversation.append(MessageParam(role="assistant", content=message.content))
+
+            has_tool = False
+            for block in message.content:
+                if block.type == "tool_use":
+                    has_tool = True
+                    # Handle FINAL specially
+                    if block.name == "FINAL":
+                        answer = block.input.get("answer")
+                        sub_ic.final_result = answer
+                        continue
+                    # Handle run_python
+                    code = block.input.get("code", "")
+                    r = sub_ic.run(str(code))
+                    stdout = r.out
+                    stderr = r.err
+                    tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
+                    conversation.append(
+                        MessageParam(
+                            role="user",
+                            content=[
+                                ToolResultBlockParam(
+                                    type="tool_result",
+                                    tool_use_id=block.id,
+                                    content=tool_result_str,
+                                )
+                            ],
+                        )
+                    )
+
+            if sub_ic.final_result:
+                return AgentResult(
+                    final_answer=sub_ic.final_result,
+                    status="completed"
+                )
+
+            if not has_tool:
+                return AgentResult(
+                    status="failed",
+                    error="No tool call and no FINAL"
+                )
 
     @dataclass
     class RunResult:
