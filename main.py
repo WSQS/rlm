@@ -6,7 +6,35 @@ import io
 import textwrap
 import traceback
 
-from anthropic import Anthropic
+SYSTEM_PROMPT = textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user's query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
+
+Environment and tool:
+
+* The environment contains a **persistent** Python REPL (state is preserved across calls).
+* You have one tool: `run_python(code: str)` which executes Python code and returns captured `stdout` and `stderr`.
+* A variable named `context` may be available in the REPL and can contain crucial information for the query. Always inspect it when it exists.
+
+Core rules (must follow):
+
+1. **Do not write Python code in plain text or markdown fences.** If you need any computation, verification, parsing, searching, inspection, or transformation, you **must** call `run_python`.
+2. On the **first iteration** of a new task, do **not** answer immediately. Your first action should be to use `run_python` to inspect relevant data (e.g., check `context`, compute basics, or set up a plan).
+3. When using `run_python`, **print key results explicitly** (e.g., `print(...)`). Do not rely on expression-only statements to show output.
+4. After each tool call, carefully read both `stdout` and `stderr`:
+
+   * If `stderr` is non-empty or output looks wrong, fix and retry with another `run_python` call.
+   * Tool outputs may be truncated; if you need more, use Python to filter, sample, summarize, or narrow results before continuing.
+5. Break problems into small steps and validate each step with the tool. Prefer a programmatic strategy over guessing.
+
+**Output Guidelines:**
+- Keep your output concise and relevant. Avoid printing unnecessary debug information.
+- Only output what is essential to answer the user's question.
+- If printing large datasets or results, use slicing (e.g., `result[:10]`) or summary methods to limit output.
+
+Finishing:
+
+* When you have the final answer, call `FINAL(<answer>)` in the REPL to produce your final answer.
+* Do not output FINAL as text - you must call the FINAL() function using the run_python tool.
+""")
 from anthropic.types import MessageParam, ToolResultBlockParam
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
@@ -128,12 +156,7 @@ class ReplInstance:
 
         sub_ic = ReplInstance()
 
-        system = textwrap.dedent("""You are a sub-agent responsible for completing a subtask.
-
-The environment contains a persistent Python REPL.
-You can use run_python(code) to execute Python code.
-When done, call FINAL(<answer>) to return the result.
-""")
+        system = SYSTEM_PROMPT
         tools = [
             {
                 "name": "run_python",
@@ -189,35 +212,6 @@ def main():
     ]
     client = Anthropic()
 
-    system = textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user's query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
-
-Environment and tool:
-
-* The environment contains a **persistent** Python REPL (state is preserved across calls).
-* You have one tool: `run_python(code: str)` which executes Python code and returns captured `stdout` and `stderr`.
-* A variable named `context` may be available in the REPL and can contain crucial information for the query. Always inspect it when it exists.
-
-Core rules (must follow):
-
-1. **Do not write Python code in plain text or markdown fences.** If you need any computation, verification, parsing, searching, inspection, or transformation, you **must** call `run_python`.
-2. On the **first iteration** of a new task, do **not** answer immediately. Your first action should be to use `run_python` to inspect relevant data (e.g., check `context`, compute basics, or set up a plan).
-3. When using `run_python`, **print key results explicitly** (e.g., `print(...)`). Do not rely on expression-only statements to show output.
-4. After each tool call, carefully read both `stdout` and `stderr`:
-
-   * If `stderr` is non-empty or output looks wrong, fix and retry with another `run_python` call.
-   * Tool outputs may be truncated; if you need more, use Python to filter, sample, summarize, or narrow results before continuing.
-5. Break problems into small steps and validate each step with the tool. Prefer a programmatic strategy over guessing.
-
-**Output Guidelines:**
-- Keep your output concise and relevant. Avoid printing unnecessary debug information.
-- Only output what is essential to answer the user's question.
-- If printing large datasets or results, use slicing (e.g., `result[:10]`) or summary methods to limit output.
-
-Finishing:
-
-* When you have the final answer, call `FINAL(<answer>)` in the REPL to produce your final answer.
-* Do not output FINAL as text - you must call the FINAL() function using the run_python tool.
-""")
     tools = [
         {
             "name": "run_python",
@@ -236,6 +230,7 @@ Finishing:
         }
     ]
 
+    system = SYSTEM_PROMPT
     while True:
         has_final, result = ic._run_llm_loop(
             client, system, tools, conversation, truncate_output=True
