@@ -17,3 +17,5 @@ For context or system prompt, is it possible or useful to not write the situatio
 For RLMs, variables act as signifiers, while the context supplies the signified meanings they refer to.
 
 Consider the situation where LLMs only output code, what they are really outputting is an abstract syntax tree (AST).
+
+Is it possible to transfer prompt to code? I think with rlm and reflection, it is possible， and the code can iteration.
