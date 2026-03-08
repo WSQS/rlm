@@ -52,7 +52,12 @@ def main():
     conversation: list[MessageParam] = [
         {
             "role": "user",
-            "content": [{"type": "text", "text": f"Solve the problem in context variable in REPL environment, type of context is {type(context)}, head of context is {str(context)[:100]}."}],
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Solve the problem in context variable in REPL environment, type of context is {type(context)}, head of context is {str(context)[:100]}.",
+                }
+            ],
         }
     ]
     client = Anthropic()
