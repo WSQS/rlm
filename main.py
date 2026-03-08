@@ -47,6 +47,7 @@ class ReplInstance:
 def agent(context: Any):
     ic = ReplInstance()
     ic.locals["context"] = context
+    ic.locals["agent"] = agent
     conversation: list[MessageParam] = [
         {
             "role": "user",
@@ -71,6 +72,7 @@ Environment and tool:
 * You have one tool: `run_python(code: str)` which executes Python code and returns captured `stdout` and `stderr`.
 * A variable named `context` is **pre-loaded** in the REPL. This variable contains the task/query to solve. Access it directly with `print(context)` or process it in your Python code.
 * **If `context` is too long to read completely**, use Python code to process it (e.g., `print(context[:200])`, `print(len(context))`, `print(context.split('\n')[0])`, etc.). **Never try to handle long context manually** - always use code.
+* A function named `agent` is **pre-loaded** in the REPL. You can call `agent(new_context)` to recursively invoke the agent with a new context/tasks. Use this for subtasks - it will return the final answer from the sub-agent.
 
 Core rules (must follow):
 
@@ -154,11 +156,11 @@ Finishing:
 
         if ic.final_result:
             print(f"FINAL:\n{ic.final_result}")
-            break
+            return ic.final_result
 
         if not has_tool:
             print("No result and no tool. Exit in exception.")
-            break
+            return "No result and no tool. Exit in exception."
 
 
 def main():
