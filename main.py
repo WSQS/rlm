@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import io
 import textwrap
 import traceback
+from typing import Any
 
 from anthropic import Anthropic
 from anthropic.types import MessageParam, ToolResultBlockParam
@@ -43,10 +44,7 @@ class ReplInstance:
         return self.RunResult(out.getvalue(), err.getvalue())
 
 
-def main():
-    load_dotenv()
-    context = "Calculate 500 times 100"
-    print("Hello from rlm!")
+def agent(context: Any):
     ic = ReplInstance()
     ic.locals["context"] = context
     conversation: list[MessageParam] = [
@@ -161,6 +159,13 @@ Finishing:
         if not has_tool:
             print("No result and no tool. Exit in exception.")
             break
+
+
+def main():
+    load_dotenv()
+    print("Hello from rlm!")
+    context = "Calculate 500 times 100"
+    agent(context)
 
 
 if __name__ == "__main__":
