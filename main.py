@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from anthropic import Anthropic
-from anthropic.types import MessageParam, ToolResultBlockParam
+from anthropic.types import MessageParam, TextBlockParam, ToolResultBlockParam
 from dotenv import load_dotenv
 
 
