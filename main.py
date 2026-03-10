@@ -3,13 +3,33 @@ from code import InteractiveConsole
 import contextlib
 from dataclasses import dataclass
 import io
+import os
 import textwrap
 import traceback
-from typing import Any
+from datetime import datetime
+from typing import Any, Dict
 
 from anthropic import Anthropic
 from anthropic.types import MessageParam, ToolResultBlockParam
 from dotenv import load_dotenv
+
+
+# JSONL logging setup
+def get_log_file_path() -> str:
+    """Get the path to the JSONL log file."""
+    rlm_dir = os.path.join(os.getcwd(), ".rlm")
+    os.makedirs(rlm_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return os.path.join(rlm_dir, f"{timestamp}.jsonl")
+
+
+LOG_FILE_PATH = get_log_file_path()
+
+
+def log_to_jsonl(data: Dict[str, Any]):
+    """Append a JSONL log entry to the log file."""
+    with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 
 DEFAULT_SYSTEM_PROMPT = textwrap.dedent("""You are an iterative tool-using agent. Your job is to answer the user's query by interacting with a persistent Python REPL via a tool, and only then produce a final answer.
@@ -92,6 +112,11 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             ],
         }
     ]
+    # Log initial user message
+    log_to_jsonl({
+        "type": "user_message",
+        "content": conversation[0]["content"]
+    })
     client = Anthropic()
     while True:
         message = client.messages.create(
@@ -117,6 +142,11 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             ],
             messages=conversation,
         )
+        # Log assistant message
+        log_to_jsonl({
+            "type": "assistant_message",
+            "content": [block.model_dump() for block in message.content]
+        })
         conversation.append(MessageParam(role="assistant", content=message.content))
         has_tool = False
         for block in message.content:
@@ -142,6 +172,12 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
                     )
                 tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
                 print(f"Tool Result:\n{tool_result_str}")
+                # Log tool result
+                log_to_jsonl({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "result": {"stdout": stdout, "stderr": stderr}
+                })
                 conversation.append(
                     MessageParam(
                         role="user",
@@ -159,6 +195,11 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
 
         if ic.final_result:
             print(f"FINAL:\n{ic.final_result}")
+            # Log final result
+            log_to_jsonl({
+                "type": "final_result",
+                "result": ic.final_result
+            })
             return ic.final_result
 
         if not has_tool:
@@ -169,6 +210,7 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
 def main():
     load_dotenv()
     print("Hello from rlm!")
+    print(f"Logging to: {LOG_FILE_PATH}")
     context = "Calculate 500 times 100"
     agent(context)
 
