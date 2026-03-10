@@ -216,8 +216,20 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
 
         if not has_tool:
             with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
-                print("No result and no tool. Exit in exception.")
-            return "No result and no tool. Exit in exception."
+                print("No result and no tool. Add user message.")
+            conversation.append(
+                MessageParam(
+                    role="user",
+                    content=[
+                        TextBlockParam(
+                            type="text",
+                            text="""You did not produce a tool call or a FINAL result.
+Do not answer in plain text.
+Continue from your last step by calling run_python, and when finished, output the final answer via FINAL(...).""",
+                        )
+                    ],
+                )
+            )
 
 
 def main():
