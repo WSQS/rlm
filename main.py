@@ -4,6 +4,7 @@ import contextlib
 from dataclasses import dataclass
 import io
 import os
+import sys
 import textwrap
 import traceback
 from datetime import datetime
@@ -151,12 +152,15 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
         has_tool = False
         for block in message.content:
             if block.type == "thinking":
-                print(f"Thinking:\n{block.thinking}\n")
+                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                    print(f"Thinking:\n{block.thinking}\n")
             elif block.type == "text":
-                print(f"Text:\n{block.text}\n")
+                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                    print(f"Text:\n{block.text}\n")
             elif block.type == "tool_use":
                 has_tool = True
-                print(f"Tool:\n{block}")
+                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                    print(f"Tool:\n{block}")
                 r = ic.run(str(block.input["code"]))
                 # Truncate stdout and stderr separately, then return as JSON
                 max_tool_result_length = 2000  # Limit each output length
@@ -171,7 +175,8 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
                         stderr[:max_tool_result_length] + "\n... [output truncated]"
                     )
                 tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
-                print(f"Tool Result:\n{tool_result_str}")
+                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                    print(f"Tool Result:\n{tool_result_str}")
                 # Log tool result
                 log_to_jsonl({
                     "type": "tool_result",
@@ -191,10 +196,12 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
                     )
                 )
             else:
-                print(f"Block:\n{block}")
+                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                    print(f"Block:\n{block}")
 
         if ic.final_result:
-            print(f"FINAL:\n{ic.final_result}")
+            with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                print(f"FINAL:\n{ic.final_result}")
             # Log final result
             log_to_jsonl({
                 "type": "final_result",
@@ -203,7 +210,8 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             return ic.final_result
 
         if not has_tool:
-            print("No result and no tool. Exit in exception.")
+            with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                print("No result and no tool. Exit in exception.")
             return "No result and no tool. Exit in exception."
 
 
