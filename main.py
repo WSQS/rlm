@@ -119,10 +119,7 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
         }
     ]
     # Log initial user message
-    log_to_jsonl({
-        "type": "user_message",
-        "content": conversation[0]["content"]
-    })
+    log_to_jsonl({"type": "user_message", "content": conversation[0]["content"]})
     client = Anthropic()
     while True:
         message = client.messages.create(
@@ -149,22 +146,33 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             messages=conversation,
         )
         # Log assistant message
-        log_to_jsonl({
-            "type": "assistant_message",
-            "content": [block.model_dump() for block in message.content]
-        })
+        log_to_jsonl(
+            {
+                "type": "assistant_message",
+                "content": [block.model_dump() for block in message.content],
+            }
+        )
         conversation.append(MessageParam(role="assistant", content=message.content))
         has_tool = False
         for block in message.content:
             if block.type == "thinking":
-                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                with (
+                    contextlib.redirect_stdout(sys.stdout),
+                    contextlib.redirect_stderr(sys.stderr),
+                ):
                     print(f"Thinking:\n{block.thinking}\n")
             elif block.type == "text":
-                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                with (
+                    contextlib.redirect_stdout(sys.stdout),
+                    contextlib.redirect_stderr(sys.stderr),
+                ):
                     print(f"Text:\n{block.text}\n")
             elif block.type == "tool_use":
                 has_tool = True
-                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                with (
+                    contextlib.redirect_stdout(sys.stdout),
+                    contextlib.redirect_stderr(sys.stderr),
+                ):
                     print(f"Tool:\n{block}")
                 r = ic.run(str(block.input["code"]))
                 # Truncate stdout and stderr separately, then return as JSON
@@ -180,14 +188,19 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
                         stderr[:max_tool_result_length] + "\n... [output truncated]"
                     )
                 tool_result_str = json.dumps({"stdout": stdout, "stderr": stderr})
-                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                with (
+                    contextlib.redirect_stdout(sys.stdout),
+                    contextlib.redirect_stderr(sys.stderr),
+                ):
                     print(f"Tool Result:\n{tool_result_str}")
                 # Log tool result
-                log_to_jsonl({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "result": {"stdout": stdout, "stderr": stderr}
-                })
+                log_to_jsonl(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "result": {"stdout": stdout, "stderr": stderr},
+                    }
+                )
                 conversation.append(
                     MessageParam(
                         role="user",
@@ -201,21 +214,27 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
                     )
                 )
             else:
-                with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+                with (
+                    contextlib.redirect_stdout(sys.stdout),
+                    contextlib.redirect_stderr(sys.stderr),
+                ):
                     print(f"Block:\n{block}")
 
         if ic.final_result:
-            with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+            with (
+                contextlib.redirect_stdout(sys.stdout),
+                contextlib.redirect_stderr(sys.stderr),
+            ):
                 print(f"FINAL:\n{ic.final_result}")
             # Log final result
-            log_to_jsonl({
-                "type": "final_result",
-                "result": ic.final_result
-            })
+            log_to_jsonl({"type": "final_result", "result": ic.final_result})
             return ic.final_result
 
         if not has_tool:
-            with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(sys.stderr):
+            with (
+                contextlib.redirect_stdout(sys.stdout),
+                contextlib.redirect_stderr(sys.stderr),
+            ):
                 print("No result and no tool. Add user message.")
             conversation.append(
                 MessageParam(
