@@ -11,7 +11,12 @@ from datetime import datetime
 from typing import Any, Dict
 
 from anthropic import Anthropic
-from anthropic.types import MessageParam, TextBlockParam, ToolResultBlockParam
+from anthropic.types import (
+    MessageParam,
+    TextBlockParam,
+    ToolResultBlockParam,
+    ToolUnionParam,
+)
 from dotenv import load_dotenv
 
 
@@ -71,6 +76,25 @@ Finishing:
 """)
 
 
+TOOLS: list[ToolUnionParam] = [
+    {
+        "name": "run_python",
+        "description": "Execute the provided Python code in a persistent REPL and return captured stdout and stderr. Use this to inspect variables, process `context`, and compute intermediate results.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Python code to execute. Do not include markdown fences.",
+                }
+            },
+            "required": ["code"],
+            "additionalProperties": False,
+        },
+    }
+]
+
+
 class ReplInstance:
     def __init__(self):
         self.locals: dict[str, object] = {"__name__": "__console__", "__doc__": None}
@@ -127,23 +151,7 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             model="MiniMax-M2.5",
             max_tokens=2000,
             system=system_prompt,
-            tools=[
-                {
-                    "name": "run_python",
-                    "description": "Execute the provided Python code in a persistent REPL and return captured stdout/stderr. Use this to inspect variables, process `context`, and compute intermediate results.",
-                    "input_schema": {
-                        "type": "object",
-                        "properties": {
-                            "code": {
-                                "type": "string",
-                                "description": "Python code to execute. Do not include markdown fences.",
-                            }
-                        },
-                        "required": ["code"],
-                        "additionalProperties": False,
-                    },
-                }
-            ],
+            tools=TOOLS,
             messages=conversation,
         )
         # Log assistant message
