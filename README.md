@@ -12,6 +12,8 @@ Recursive Language Models (RLMs) go one step further. The model can recursively 
 
 When handling long contexts, the LLM behaves like a parser: semantics can flow both up and down in a tree structure. From this perspective, the key point in this structure is how the semantics flow up and down. In RLMs, semantics flow down by query with sub-context, semantics flow up by subagent return it's result.
 
+One problem is in this view, how can rlm handle multiple long input context?
+
 For context or system prompt, is it possible or useful to not write the situation, but just put the core code into it? I think this will like lisp, which core implementation can be written in on page. 
 
 For RLMs, variables act as signifiers, while the context supplies the signified meanings they refer to.
