@@ -121,6 +121,7 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     # Log initial user message
     log_to_jsonl({"type": "user_message", "content": conversation[0]["content"]})
     client = Anthropic()
+    retry_times = 5
     while True:
         message = client.messages.create(
             model="MiniMax-M2.5",
@@ -230,7 +231,8 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
             log_to_jsonl({"type": "final_result", "result": ic.final_result})
             return ic.final_result
 
-        if not has_tool:
+        if not has_tool and retry_times > 0:
+            retry_times -= 1
             with (
                 contextlib.redirect_stdout(sys.stdout),
                 contextlib.redirect_stderr(sys.stderr),
