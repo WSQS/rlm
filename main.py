@@ -1,3 +1,4 @@
+import argparse
 import json
 from code import InteractiveConsole
 import contextlib
@@ -263,10 +264,14 @@ Continue from your last step by calling run_python, and when finished, output th
 
 def main():
     load_dotenv()
-    print("Hello from rlm!")
+
+    parser = argparse.ArgumentParser(description="Run RLM with context")
+    parser.add_argument("context", help="Context string to process")
+    args = parser.parse_args()
+
+    print(f"Context: {args.context}")
     print(f"Logging to: {LOG_FILE_PATH}")
-    context = "Calculate 500 times 100"
-    agent(context)
+    agent(args.context)
 
 
 if __name__ == "__main__":
