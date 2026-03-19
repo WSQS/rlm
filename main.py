@@ -149,7 +149,7 @@ def agent(context: Any, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     retry_times = 5
     while True:
         message = client.messages.create(
-            model="MiniMax-M2.5",
+            model="MiniMax-M2.7",
             max_tokens=2000,
             system=system_prompt,
             tools=TOOLS,
