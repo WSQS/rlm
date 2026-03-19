@@ -267,11 +267,16 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run RLM with context")
     parser.add_argument("context", help="Context string to process")
+    parser.add_argument("-o", "--output", help="Output file path")
     args = parser.parse_args()
 
     print(f"Context: {args.context}")
     print(f"Logging to: {LOG_FILE_PATH}")
-    agent(args.context)
+    result = agent(args.context)
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(str(result))
 
 
 if __name__ == "__main__":
