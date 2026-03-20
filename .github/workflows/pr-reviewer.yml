@@ -1,0 +1,155 @@
+name: rlm-pr-reviewer
+
+on:
+    pull_request:
+        types: [opened, reopened, synchronize]
+    workflow_dispatch:
+        inputs:
+            pr_number:
+                description: "PR number to review"
+                required: true
+                type: number
+
+jobs:
+    review-pr:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+            issues: write
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+              with:
+                  token: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Determine PR number
+              id: pr_info
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "NUMBER=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Get PR details
+              uses: actions/github-script@v7
+              id: pr
+              env:
+                  PR_NUMBER: ${{ steps.pr_info.outputs.NUMBER }}
+              with:
+                  github-token: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
+                  script: |
+                      const prData = await github.rest.pulls.get({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: parseInt(process.env.PR_NUMBER)
+                      });
+                      const diffData = await github.rest.pulls.get({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: parseInt(process.env.PR_NUMBER),
+                        mediaType: {
+                          format: 'diff'
+                        }
+                      });
+                      // Return object directly - GitHub Actions will serialize it as JSON
+                      return {
+                        title: prData.data.title,
+                        body: prData.data.body,
+                        diff: diffData.data,
+                        author: prData.data.user.login,
+                        baseBranch: prData.data.base.ref,
+                        headBranch: prData.data.head.ref
+                      };
+
+            - name: Save PR to file
+              env:
+                  PR_NUMBER: ${{ steps.pr_info.outputs.NUMBER }}
+                  PR_TITLE: ${{ fromJson(steps.pr.outputs.result).title }}
+                  PR_AUTHOR: ${{ fromJson(steps.pr.outputs.result).author }}
+                  PR_BODY: ${{ fromJson(steps.pr.outputs.result).body }}
+                  PR_BASE: ${{ fromJson(steps.pr.outputs.result).baseBranch }}
+                  PR_HEAD: ${{ fromJson(steps.pr.outputs.result).headBranch }}
+                  PR_DIFF: ${{ fromJson(steps.pr.outputs.result).diff }}
+              run: |-
+                  cat > pr_context.txt <<BODYEOF
+                  [PR REVIEW]
+                  PR Number: #${PR_NUMBER}
+                  PR File: ${{ github.workspace }}/pr_context.txt
+
+                  === PR Title ===
+                  ${PR_TITLE}
+
+                  === PR Author ===
+                  ${PR_AUTHOR}
+
+                  === PR Description ===
+                  ${PR_BODY}
+
+                  === Base Branch ===
+                  ${PR_BASE}
+
+                  === Head Branch ===
+                  ${PR_HEAD}
+
+                  === PR Diff ===
+                  ${PR_DIFF}
+                  BODYEOF
+
+            - name: Run rlm to review PR
+              id: rlm
+              uses: ./
+              with:
+                  context: "You are reviewing GitHub PR #${{ steps.pr_info.outputs.NUMBER }}. The PR details are stored in the file: ${{ github.workspace }}/pr_context.txt. Please review the PR changes and provide feedback on code quality, potential issues, and suggestions. Output your review comments as result."
+                  output_file: "review_comment.md"
+              env:
+                  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                  ANTHROPIC_BASE_URL: https://api.minimaxi.com/anthropic
+
+            - name: Upload logs
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: rlm-logs-pr-${{ steps.pr_info.outputs.NUMBER }}
+                  path: .rlm/
+                  include-hidden-files: true
+
+            - name: Check for review comments
+              id: review_output
+              run: |
+                  if [ -s "review_comment.md" ]; then
+                    echo "has_review=true" >> $GITHUB_OUTPUT
+                    echo "Review file exists and is not empty"
+                  else
+                    echo "has_review=false" >> $GITHUB_OUTPUT
+                    echo "Review file is empty or does not exist"
+                  fi
+
+            - name: Post review comment
+              if: steps.review_output.outputs.has_review == 'true'
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
+                  script: |
+                      const fs = require('fs');
+                      const reviewComment = fs.readFileSync('review_comment.md', 'utf8');
+                      await github.rest.issues.createComment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: ${{ steps.pr_info.outputs.NUMBER }},
+                        body: '## PR Review\n\n' + reviewComment
+                      });
+
+            - name: Add reaction to PR
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
+                  script: |
+                      await github.rest.reactions.createForIssue({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: ${{ steps.pr_info.outputs.NUMBER }},
+                        content: '+1'
+                      });
