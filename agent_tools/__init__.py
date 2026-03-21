@@ -132,7 +132,7 @@ def discover_tools(package_path: str | None = None) -> None:
             continue
 
         # Import the module to trigger @tool decorators
-        full_module_name = f"tools.{module_name}"
+        full_module_name = f"agent_tools.{module_name}"
         try:
             importlib.import_module(full_module_name)
         except Exception as e:

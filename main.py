@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 # Add the script's directory to sys.path for tools module discovery
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import tools
+import agent_tools
 
 
 # JSONL logging setup
@@ -84,7 +84,7 @@ Finishing:
 
 
 # Discover and register tools from tools/ directory
-tools.discover_tools()
+agent_tools.discover_tools()
 
 TOOLS: list[ToolUnionParam] = [
     {
@@ -118,7 +118,7 @@ class ReplInstance:
         self.locals["FINAL"] = FINAL
 
         def get_tools():
-            return tools.get_tools()
+            return agent_tools.get_tools()
 
         self.locals["get_tools"] = get_tools
 

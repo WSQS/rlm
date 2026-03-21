@@ -1,6 +1,6 @@
 """Example tools for demonstration."""
 
-from tools import tool
+from agent_tools import tool
 
 
 @tool(name="echo", description="Echo back the provided message")
