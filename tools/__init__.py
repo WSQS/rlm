@@ -73,19 +73,16 @@ class ToolRegistry:
         }
 
     def get_tools(self) -> list[dict[str, Any]]:
-        """Get all registered tools as Anthropic-format tool definitions."""
-        result: list[dict[str, Any]] = []
-        for tool in self._tools:
-            result.append({
+        """Get all registered tools as Anthropic-format tool definitions with functions."""
+        return [
+            {
                 "name": tool["name"],
                 "description": tool["description"],
                 "input_schema": tool["input_schema"],
-            })
-        return result
-
-    def get_tool_functions(self) -> dict[str, Callable[..., Any]]:
-        """Get mapping of tool names to their functions for execution."""
-        return {tool["name"]: tool["function"] for tool in self._tools}
+                "function": tool["function"],
+            }
+            for tool in self._tools
+        ]
 
     def clear(self):
         """Clear all registered tools."""
@@ -148,10 +145,5 @@ def get_registry() -> ToolRegistry:
 
 
 def get_tools() -> list[dict[str, Any]]:
-    """Get all registered tools."""
+    """Get all registered tools with functions."""
     return _registry.get_tools()
-
-
-def get_tool_functions() -> dict[str, Callable[..., Any]]:
-    """Get all registered tool functions."""
-    return _registry.get_tool_functions()

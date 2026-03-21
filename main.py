@@ -113,7 +113,7 @@ class ReplInstance:
 
         self.locals["FINAL"] = FINAL
         def get_tools():
-            return tools.get_tool_functions()
+            return tools.get_tools()
         self.locals["get_tools"] = get_tools
 
     @dataclass
