@@ -20,6 +20,8 @@ from anthropic.types import (
 )
 from dotenv import load_dotenv
 
+import tools
+
 
 # JSONL logging setup
 def get_log_file_path() -> str:
@@ -77,6 +79,9 @@ Finishing:
 """)
 
 
+# Discover and register tools from tools/ directory
+tools.discover_tools()
+
 TOOLS: list[ToolUnionParam] = [
     {
         "name": "run_python",
@@ -107,6 +112,9 @@ class ReplInstance:
             self.final_result = answer
 
         self.locals["FINAL"] = FINAL
+        def get_tools():
+            return tools.get_tool_functions()
+        self.locals["get_tools"] = get_tools
 
     @dataclass
     class RunResult:
