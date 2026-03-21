@@ -20,6 +20,9 @@ from anthropic.types import (
 )
 from dotenv import load_dotenv
 
+# Add the script's directory to sys.path for tools module discovery
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import tools
 
 
@@ -49,6 +52,7 @@ Environment and tool:
 * You have one tool: `run_python(code: str)` which executes Python code and returns captured `stdout` and `stderr`.
 * A variable named `context` is **pre-loaded** in the REPL. This variable contains the task/query to solve. Access it directly with `print(context)` or process it in your Python code.
 * **If `context` is too long to read completely**, use Python code to process it (e.g., `print(context[:200])`, `print(len(context))`, `print(context.split('\n')[0])`, etc.). **Never try to handle long context manually** - always use code.
+* A function named `get_tools` is **pre-loaded** in the REPL. Call `get_tools()` to retrieve the list of available tools. **Always call `get_tools()` first when starting a new task**, and use the returned tools to accomplish your goal when possible.
 * A function named `agent` is **pre-loaded** in the REPL. You can call `agent(new_context)` or `agent(new_context, custom_system_prompt)` to recursively invoke the agent with a new context/tasks. It will return the final answer from the sub-agent. **Use this when you encounter a gap that cannot be resolved by deterministic code logic.**
 
 Core rules (must follow):
@@ -112,8 +116,10 @@ class ReplInstance:
             self.final_result = answer
 
         self.locals["FINAL"] = FINAL
+
         def get_tools():
             return tools.get_tools()
+
         self.locals["get_tools"] = get_tools
 
     @dataclass
