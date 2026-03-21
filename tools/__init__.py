@@ -13,10 +13,10 @@ class ToolRegistry:
     def __init__(self):
         self._tools: list[dict[str, Any]] = []
 
-    def register(self, name: str, description: str, func: Callable) -> Callable:
+    def register(self, name: str, description: str, func: Callable[..., Any]) -> Callable[..., Any]:
         """Register a tool with the registry."""
         input_schema = self._generate_input_schema(func)
-        tool_def = {
+        tool_def: dict[str, Any] = {
             "name": name,
             "description": description,
             "input_schema": input_schema,
@@ -25,14 +25,14 @@ class ToolRegistry:
         self._tools.append(tool_def)
         return func
 
-    def _generate_input_schema(self, func: Callable) -> dict:
+    def _generate_input_schema(self, func: Callable[..., Any]) -> dict[str, Any]:
         """Generate input_schema from function signature and docstring."""
         sig = inspect.signature(func)
-        properties = {}
-        required = []
+        properties: dict[str, Any] = {}
+        required: list[str] = []
 
         # Parse docstring for parameter descriptions
-        doc_params = {}
+        doc_params: dict[str, str] = {}
         if func.__doc__:
             lines = func.__doc__.split("\n")
             for line in lines:
@@ -57,7 +57,7 @@ class ToolRegistry:
                 elif param.annotation in (dict, "dict"):
                     param_type = "object"
 
-            description = doc_params.get(param_name, f"Parameter {param_name}")
+            description: str = doc_params.get(param_name, f"Parameter {param_name}")
             properties[param_name] = {
                 "type": param_type,
                 "description": description,
@@ -74,7 +74,7 @@ class ToolRegistry:
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get all registered tools as Anthropic-format tool definitions."""
-        result = []
+        result: list[dict[str, Any]] = []
         for tool in self._tools:
             result.append({
                 "name": tool["name"],
@@ -83,7 +83,7 @@ class ToolRegistry:
             })
         return result
 
-    def get_tool_functions(self) -> dict[str, Callable]:
+    def get_tool_functions(self) -> dict[str, Callable[..., Any]]:
         """Get mapping of tool names to their functions for execution."""
         return {tool["name"]: tool["function"] for tool in self._tools}
 
@@ -106,13 +106,13 @@ def tool(name: str, description: str):
             param2: Description for param2\"\"\"
             ...
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         _registry.register(name, description, func)
         return func
     return decorator
 
 
-def discover_tools(package_path: str = None) -> None:
+def discover_tools(package_path: str | None = None) -> None:
     """Auto-discover and load all tools from the tools package.
 
     Args:
@@ -120,9 +120,10 @@ def discover_tools(package_path: str = None) -> None:
     """
     if package_path is None:
         # Default to the tools folder relative to this file
-        package_path = Path(__file__).parent
+        tools_path: Path = Path(__file__).parent
+    else:
+        tools_path = Path(package_path)
 
-    tools_path = Path(package_path)
     if not tools_path.exists():
         print(f"Warning: tools directory not found at {tools_path}")
         return
@@ -151,6 +152,6 @@ def get_tools() -> list[dict[str, Any]]:
     return _registry.get_tools()
 
 
-def get_tool_functions() -> dict[str, Callable]:
+def get_tool_functions() -> dict[str, Callable[..., Any]]:
     """Get all registered tool functions."""
     return _registry.get_tool_functions()
