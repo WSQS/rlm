@@ -286,6 +286,7 @@ def main():
 
     print(f"Context: {args.context}")
     print(f"Logging to: {LOG_FILE_PATH}")
+    print(f"Tools:{agent_tools.get_tools()}")
     result = agent(args.context)
 
     if args.output:

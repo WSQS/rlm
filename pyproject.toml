@@ -13,4 +13,7 @@ dependencies = [
 package = true
 
 [project.scripts]
-rlm = "main:main"
+rlm = "rlm.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
