@@ -100,7 +100,7 @@ jobs:
 
             - name: Run rlm to review PR
               id: rlm
-              uses: ./
+              uses: WSQS/rlm-action@master
               with:
                   context: "You are reviewing GitHub PR #${{ steps.pr_info.outputs.NUMBER }}. The PR details are stored in the file: ${{ github.workspace }}/pr_context.txt. Please review the PR changes and provide feedback on code quality, potential issues, and suggestions. Output your review comments as result."
                   output_file: "review_comment.md"
